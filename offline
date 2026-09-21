@@ -1,0 +1,30 @@
+@echo off
+net user Administrator /active:yes >nul 2>&1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Win11-Debloat\Files\Win11Debloat.ps1" -Sysprep -Config "C:\Win11-Debloat\Files\Config\custom.json" -Silent -ClearStartAllUsers -DisableStartRecommended -DisableStartPhoneLink -StartAllAppsList
+copy /Y "C:\Win11-Debloat\Files\Assets\PsExec.exe" "C:\Windows\System32\PsExec.exe" >nul 2>&1
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList" /va /f >nul 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList" /v "Administrator" /t REG_DWORD /d 1 /f >nul 2>&1
+for /f "skip=4 tokens=1" %%u in ('net user 2^>nul') do @if /i not "%%u"=="Administrator" reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList" /v "%%u" /t REG_DWORD /d 0 /f >nul 2>&1
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v RegisteredOwner /f >nul 2>&1
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v RegisteredOrganization /f >nul 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v HideFastUserSwitching /t REG_DWORD /d 1 /f >nul 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnumerateLocalUsers /t REG_DWORD /d 0 /f >nul 2>&1
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband" /f >nul 2>&1
+reg load HKU\DefaultUser "C:\Users\Default\NTUSER.DAT" >nul 2>&1
+reg delete "HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband" /f >nul 2>&1
+reg unload HKU\DefaultUser >nul 2>&1
+powercfg /x /monitor-timeout-ac 0
+powercfg /x /standby-timeout-ac 0
+powercfg /hibernate off
+(
+echo @echo off
+echo powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$members = Get-LocalGroupMember -Group 'Administrators' -ErrorAction SilentlyContinue; foreach ($m in $members) { $n = $m.Name.Split('\')[-1]; if ($n -ne 'Administrator') { Remove-LocalGroupMember -Group 'Administrators' -Member $m.Name -Confirm:$false -ErrorAction SilentlyContinue } }"
+echo powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$exclude=@('Public','Default','Administrator'); Get-CimInstance Win32_UserProfile | Where-Object { -not $_.Special -and -not $_.Loaded -and $exclude -notcontains (Split-Path $_.LocalPath -Leaf) } | ForEach-Object { $sid=$_.SID; $path=$_.LocalPath; Remove-CimInstance -InputObject $_ -Confirm:$false -ErrorAction SilentlyContinue; if(Test-Path $path){Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue}; $reg='HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\' + $sid; if(Test-Path $reg){Remove-Item $reg -Recurse -Force -ErrorAction SilentlyContinue} }; attrib +h 'C:\Users\Public'; tzutil /s 'Singapore Standard Time'; net start w32time; w32tm /config /update; w32tm /resync /force"
+echo del /f /q "%%APPDATA%%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\*" ^>nul 2^>^&1
+echo reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband" /f ^>nul 2^>^&1
+echo reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Streams\Desktop" /f ^>nul 2^>^&1
+echo del /f /q "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\user.bat" ^>nul 2^>^&1
+echo shutdown /r /t 5 /f
+) > "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\user.bat"
+shutdown /r /f /t 10
+
