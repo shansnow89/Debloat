@@ -18,6 +18,7 @@ powercfg /x /standby-timeout-ac 0
 powercfg /hibernate off
 (
 echo @echo off
+echo powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Win11-Debloat\Files\Win11Debloat.ps1" -Sysprep -Config "C:\Win11-Debloat\Files\Config\custom.json" -Silent -ClearStartAllUsers -DisableStartRecommended -DisableStartPhoneLink -StartAllAppsList
 echo powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$members = Get-LocalGroupMember -Group 'Administrators' -ErrorAction SilentlyContinue; foreach ($m in $members) { $n = $m.Name.Split('\')[-1]; if ($n -ne 'Administrator') { Remove-LocalGroupMember -Group 'Administrators' -Member $m.Name -Confirm:$false -ErrorAction SilentlyContinue } }"
 echo powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$exclude=@('Public','Default','Administrator'); Get-CimInstance Win32_UserProfile | Where-Object { -not $_.Special -and -not $_.Loaded -and $exclude -notcontains (Split-Path $_.LocalPath -Leaf) } | ForEach-Object { $sid=$_.SID; $path=$_.LocalPath; Remove-CimInstance -InputObject $_ -Confirm:$false -ErrorAction SilentlyContinue; if(Test-Path $path){Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue}; $reg='HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\' + $sid; if(Test-Path $reg){Remove-Item $reg -Recurse -Force -ErrorAction SilentlyContinue} }; attrib +h 'C:\Users\Public'; tzutil /s 'Singapore Standard Time'; net start w32time; w32tm /config /update; w32tm /resync /force"
 echo del /f /q "%%APPDATA%%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\*" ^>nul 2^>^&1
